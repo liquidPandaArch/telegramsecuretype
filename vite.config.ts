@@ -9,7 +9,6 @@ import autoprefixer from 'autoprefixer';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { ServerOptions } from 'vite';
-import mkcert from 'vite-plugin-mkcert'
 
 const rootDir = resolve(__dirname);
 
