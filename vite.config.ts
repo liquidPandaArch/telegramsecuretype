@@ -9,6 +9,7 @@ import autoprefixer from 'autoprefixer';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { ServerOptions } from 'vite';
+import mkcert from 'vite-plugin-mkcert'
 
 const rootDir = resolve(__dirname);
 
@@ -24,6 +25,12 @@ const handlebarsPlugin = handlebars({
 const serverOptions: ServerOptions = {
   // host: '192.168.95.17',
   port: 8080,
+  proxy: {
+    "/api": {
+      target: "http://localhost:6000",
+      changeOrigin: true,
+    },
+  },
   sourcemapIgnoreList(sourcePath, sourcemapPath) {
     return sourcePath.includes('node_modules') || sourcePath.includes('logger');
   }
@@ -35,9 +42,11 @@ const USE_SOLID_SRC = false;
 const SOLID_PATH = USE_SOLID_SRC ? SOLID_SRC_PATH : SOLID_BUILT_PATH;
 const USE_OWN_SOLID = existsSync(resolve(rootDir, SOLID_PATH));
 
-const USE_SSL = false;
+// const USE_SSL = false;
+const USE_SSL = true;
+
 const NO_MINIFY = false;
-const SSL_CONFIG: any = undefined && USE_SSL && {
+const SSL_CONFIG: any = USE_SSL && {
   name: '192.168.95.17',
   certDir: './certs/'
 };

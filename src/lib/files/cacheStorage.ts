@@ -17,7 +17,6 @@ export type CacheStorageDbName = 'cachedFiles' | 'cachedStreamChunks' | 'cachedA
 export default class CacheStorageController implements FileStorage {
   private static STORAGES: CacheStorageController[] = [];
   private openDbPromise: Promise<Cache>;
-
   private useStorage = true;
 
   // private log: ReturnType<typeof logger> = logger('CS');
@@ -29,7 +28,7 @@ export default class CacheStorageController implements FileStorage {
 
     if(CacheStorageController.STORAGES.length) {
       this.useStorage = CacheStorageController.STORAGES[0].useStorage;
-    }
+    } 
 
     this.openDatabase();
     CacheStorageController.STORAGES.push(this);

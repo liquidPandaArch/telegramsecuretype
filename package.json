@@ -6,7 +6,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "start": "vite --force",
-    "serve": "pnpm run build; node server.js",
+    "starthost": "vite --force --host",
+    "serve": "pnpm run build && node server.js",
     "build": "pnpm run generate-changelog && vite build",
     "test": "vitest",
     "whybundled": "pnpm run profile && whybundled stats.json",
@@ -58,6 +59,7 @@
     "vite": "^5.2.10",
     "vite-plugin-checker": "^0.6.2",
     "vite-plugin-handlebars": "^1.6.0",
+    "vite-plugin-mkcert": "^1.17.6",
     "vite-plugin-solid": "^2.8.0",
     "vitest": "^0.34.6"
   },

@@ -35,7 +35,7 @@ const onFirstMount = () => {
     setTimeout(() => {
       document.getElementById('auth-pages').remove();
     }, 1e3);
-  });
+  }); 
 };
 
 const page = new Page('page-success', false, onFirstMount);

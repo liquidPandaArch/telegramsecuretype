@@ -1080,7 +1080,7 @@ export class AppProfileManager extends AppManager {
       // return;
     } else {
       this.appUsersManager.forceUserOnline(fromId);
-    }
+    } 
 
     typing.timeout = ctx.setTimeout(cancelAction, 6000);
     if(hasUser) {
