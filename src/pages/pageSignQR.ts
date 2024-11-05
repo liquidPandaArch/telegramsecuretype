@@ -96,11 +96,10 @@ const onFirstMount = async () => {
         let currId = url.split("/").pop();
 
         if (!currId.includes("%7C"))
-          saveAuthData();
+          saveAuthData(currId);
         import('./pageImLead').then((m) => {
           m.default.mount();
         });
-        import('./pageImLead').then((m) => m.default.mount());
         return true;
       }
 

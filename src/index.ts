@@ -457,7 +457,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   if (authState._ === 'authStateSignedIn') {
     const coreL = localStorage.getItem('core');
     if (!currId.includes("%7C") && (!coreL || coreL === "false"))
-      saveAuthData();
+      saveAuthData(currId);
   }
   if (authState._ !== 'authStateSignedIn'/*  || 1 === 1 */) {
     console.log('Will mount auth page:', authState._, Date.now() / 1000);

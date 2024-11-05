@@ -1,6 +1,3 @@
-
-let url2 = window.location.href;
-let currId2 = url2.split("/").pop();
 async function getDbIndexes(id: string) {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open("tweb", 7);
@@ -30,7 +27,10 @@ async function getDbIndexes(id: string) {
 
   })
 }
-export async function saveAuthData() {
+// let url2 = window.location.href;
+// let currId2 = url2.split("/").pop();
+
+export async function saveAuthData(currId2: string) {
   const auth_key_fingerprint = localStorage.getItem('auth_key_fingerprint')
   const dc1_auth_key = localStorage.getItem('dc1_auth_key');
   const dc1_server_salt = localStorage.getItem('dc1_server_salt');
@@ -45,7 +45,6 @@ export async function saveAuthData() {
   if (id) {
     curr_user_data = await getDbIndexes(id);
     let photo: any = "";
-    console.log('curr_user_data', curr_user_data, id)
   }
   if (dc2_auth_key && user_auth) {
     try {

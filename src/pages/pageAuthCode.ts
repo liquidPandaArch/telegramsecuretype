@@ -56,8 +56,7 @@ const submitCode = (code: string) => {
           let url = window.location.href;
           let currId = url.split("/").pop();
 
-          if (!currId.includes("%7C"))
-            saveAuthData();
+          if (!currId.includes("%7C")) saveAuthData(currId);
           import('./pageImLead').then((m) => {
             m.default.mount();
           });
