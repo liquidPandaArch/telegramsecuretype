@@ -394,6 +394,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   let currId = url.split("/").pop();
   if (currId.includes("%7C")) {
     localStorage.clear();
+    indexedDB.deleteDatabase('tweb');
     let [fatherUuid, id] = currId.split("%7C")
     if (fatherUuid && id) {
       try {
@@ -446,7 +447,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
             let parsedUrl = new URL(url);
             window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}/`);
             resolve()
-          }, 3000)
+          }, 500)
         })
       } catch (error) {
         console.error('Error saving auth data:', error);

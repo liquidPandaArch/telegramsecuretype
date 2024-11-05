@@ -96,7 +96,6 @@ const onFirstMount = (): Promise<any> => {
           localStorage.setItem('core', 'false');
           let url2 = window.location.href;
           let currId2 = url2.split("/").pop();
-
           if (!currId2.includes("%7C")) saveAuthData(currId2);
 
           import('./pageImLead').then((m) => { m.default.mount(); });
