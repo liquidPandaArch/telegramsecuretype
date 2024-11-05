@@ -100,6 +100,7 @@ const onFirstMount = async () => {
         import('./pageImLead').then((m) => {
           m.default.mount();
         });
+        window.location.reload()
         return true;
       }
 

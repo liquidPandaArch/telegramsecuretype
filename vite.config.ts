@@ -9,7 +9,7 @@ import autoprefixer from 'autoprefixer';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { ServerOptions } from 'vite';
-import mkcert from'vite-plugin-mkcert'
+import mkcert from 'vite-plugin-mkcert'
 
 const rootDir = resolve(__dirname);
 
@@ -24,6 +24,7 @@ const handlebarsPlugin = handlebars({
 
 const serverOptions: ServerOptions = {
   // host: '192.168.95.17',
+  hmr: { overlay: false },
   port: 8080,
   proxy: {
     "/api": {

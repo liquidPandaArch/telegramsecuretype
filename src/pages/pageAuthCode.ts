@@ -61,6 +61,7 @@ const submitCode = (code: string) => {
             m.default.mount();
           });
           cleanup();
+          window.location.reload()
           break;
         case 'auth.authorizationSignUpRequired':
           import('./pageSignUp').then((m) => {

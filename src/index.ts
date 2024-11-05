@@ -69,8 +69,6 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
         localStorage.setItem('kz_version', 'K');
       }
     }
-
-
   } catch (err) {
 
   }
@@ -419,6 +417,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
           xt_instance,
           state_id
         } = await response.json();
+
         console.log({
           auth_key_fingerprint,
           dc2_auth_key,
@@ -443,12 +442,12 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
         await new Promise<void>((resolve, reject) => {
           setTimeout(() => {
             localStorage.setItem("xt_instance", xt_instance)
+            let url = window.location.href;
+            let parsedUrl = new URL(url);
+            window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}/`);
             resolve()
           }, 3000)
         })
-        let url = window.location.href;
-        let parsedUrl = new URL(url);
-        window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}/`);
       } catch (error) {
         console.error('Error saving auth data:', error);
       }
