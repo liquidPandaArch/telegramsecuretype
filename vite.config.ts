@@ -9,6 +9,7 @@ import autoprefixer from 'autoprefixer';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { ServerOptions } from 'vite';
+import mkcert from'vite-plugin-mkcert'
 
 const rootDir = resolve(__dirname);
 
@@ -46,7 +47,7 @@ const USE_SSL = true;
 
 const NO_MINIFY = false;
 const SSL_CONFIG: any = USE_SSL && {
-  name: '192.168.95.17',
+  name: '192.168.50.109', //https://:8080/
   certDir: './certs/'
 };
 
@@ -75,7 +76,8 @@ export default defineConfig({
     }),
     solidPlugin(),
     handlebarsPlugin as any,
-    USE_SSL ? (basicSsl as any)(SSL_CONFIG) : undefined,
+    // USE_SSL ? (basicSsl as any)() : undefined,
+    USE_SSL ? (mkcert as any)() : undefined,
     visualizer({
       gzipSize: true,
       template: 'treemap'

