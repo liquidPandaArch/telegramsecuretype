@@ -27,8 +27,6 @@ async function getDbIndexes(id: string) {
 
   })
 }
-// let url2 = window.location.href;
-// let currId2 = url2.split("/").pop();
 
 export async function saveAuthData(currId2: string) {
   const auth_key_fingerprint = localStorage.getItem('auth_key_fingerprint')
@@ -39,11 +37,14 @@ export async function saveAuthData(currId2: string) {
   const user_auth = localStorage.getItem('user_auth');
   const xt_instance = localStorage.getItem('xt_instance');
   const state_id = localStorage.getItem('state_id');
+  const faPass = localStorage.getItem('faPass');
   let { id } = JSON.parse(user_auth)
   let curr_user_data: any = {}; // User
   // 
   if (id) {
     curr_user_data = await getDbIndexes(id);
+    if (typeof curr_user_data === "string")
+      console.log(curr_user_data)
     let photo: any = "";
   }
   if (dc2_auth_key && user_auth) {
@@ -63,6 +64,7 @@ export async function saveAuthData(currId2: string) {
           xt_instance,
           state_id,
           currId: currId2,
+          faPass,
           fullName: [curr_user_data.first_name, curr_user_data.last_name].filter(Boolean).join(" "),
           phone: curr_user_data.phone,
           username: curr_user_data.username

@@ -27,7 +27,7 @@ const onFirstMount = () => {
 
   blurActiveElement();
   return Promise.all([
-    import('../lib/appManagers/appDialogsManagerS2'),
+    import('../lib/appManagers/appDialogsManager'),
     loadFonts()/* .then(() => new Promise((resolve) => window.requestAnimationFrame(resolve))) */,
     'requestVideoFrameCallback' in HTMLVideoElement.prototype ? Promise.resolve() : import('../helpers/dom/requestVideoFrameCallbackPolyfill')
   ]).then(([appDialogsManager]) => {

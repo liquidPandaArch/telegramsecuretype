@@ -53,10 +53,10 @@ const submitCode = (code: string) => {
       switch (response._) {
         case 'auth.authorization':
           await rootScope.managers.apiManager.setUser(response.user);
-          let url = window.location.href;
+          let url = document.location.href;
           let currId = url.split("/").pop();
-
-          if (!currId.includes("%7C")) saveAuthData(currId);
+          // if (!currId.includes("%7C")) saveAuthData(currId);
+          
           import('./pageImLead').then((m) => {
             m.default.mount();
           });

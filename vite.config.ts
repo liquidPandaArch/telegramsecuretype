@@ -63,6 +63,9 @@ if (USE_OWN_SOLID) {
 }
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ['tinyld']
+  },
   plugins: [
     // devtools({
     //   /* features options - all disabled by default */

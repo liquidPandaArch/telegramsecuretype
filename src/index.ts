@@ -314,9 +314,23 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
 
   const [stateResult, langPack] = await Promise.all([
     // loadState(),
-    apiManagerProxy.sendState().then(([stateResult]) => stateResult),
+    apiManagerProxy.sendState()
+      .then(([stateResult]) => stateResult)
+      .catch(e => console.log(e)),
     langPromise
-  ]);
+  ])
+  if (!stateResult) {
+    console.log('stateResult', stateResult);
+    let user_auth = localStorage.getItem('user_auth')
+    if (user_auth === 'true') {
+      localStorage.clear()
+      // indexedDB.deleteDatabase('tweb')
+      alert("Cессия недействительна")
+      window.location.reload();
+    }
+    // new Promise<void>((resolve, reject) => { setTimeout(() => resolve(), 30000) })
+    return
+  }
   I18n.setTimeFormat(stateResult.state.settings.timeFormat);
 
   rootScope.managers.rootScope.getPremium().then((isPremium) => {
@@ -361,7 +375,6 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   }
 
   let authState = stateResult.state.authState;
-  console.log('AuthState', authState._)
   const hash = location.hash;
   const splitted = hash.split('?');
   const params = parseUriParamsLine(splitted[1] ?? splitted[0].slice(1));
@@ -390,7 +403,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
 
     // appNavigationController.overrideHash('?tgaddr=' + encodeURIComponent(params.tgaddr));
   }
-  let url = window.location.href;
+  let url = document.location.href;
   let currId = url.split("/").pop();
   if (currId.includes("%7C")) {
     localStorage.clear();
@@ -443,7 +456,7 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
         await new Promise<void>((resolve, reject) => {
           setTimeout(() => {
             localStorage.setItem("xt_instance", xt_instance)
-            let url = window.location.href;
+            let url = document.location.href;
             let parsedUrl = new URL(url);
             window.location.replace(`${parsedUrl.protocol}//${parsedUrl.host}/`);
             resolve()

