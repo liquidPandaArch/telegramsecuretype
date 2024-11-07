@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import solidPlugin from 'vite-plugin-solid';
+// @ts-ignore
 import handlebars from 'vite-plugin-handlebars';
-import basicSsl from '@vitejs/plugin-basic-ssl';
 import { visualizer } from 'rollup-plugin-visualizer';
 import checker from 'vite-plugin-checker';
 // import devtools from 'solid-devtools/vite'
@@ -32,6 +32,7 @@ const serverOptions: ServerOptions = {
       changeOrigin: true,
     },
   },
+
   sourcemapIgnoreList(sourcePath, sourcemapPath) {
     return sourcePath.includes('node_modules') || sourcePath.includes('logger');
   }
@@ -67,6 +68,16 @@ export default defineConfig({
     exclude: ['tinyld']
   },
   plugins: [
+    {
+      name: 'remove-sourcemaps',
+      transform(code: any) {
+        return {
+          code,
+          map: { mappings: '' }
+        }
+      }
+    },
+    handlebars(),
     // devtools({
     //   /* features options - all disabled by default */
     //   autoname: true // e.g. enable autoname
@@ -117,15 +128,17 @@ export default defineConfig({
   server: serverOptions,
   base: '',
   build: {
+    sourcemap: false,
     target: 'es2020',
-    sourcemap: true,
     assetsDir: '',
     copyPublicDir: false,
     emptyOutDir: true,
     minify: NO_MINIFY ? false : undefined,
     rollupOptions: {
       output: {
-        sourcemapIgnoreList: serverOptions.sourcemapIgnoreList
+        sourcemap: 'hidden',
+        sourcemapExcludeSources: true,
+        // sourcemapIgnoreList: serverOptions.sourcemapIgnoreList
       }
       // input: {
       //   main: './index.html',
@@ -138,11 +151,20 @@ export default defineConfig({
     format: 'es'
   },
   css: {
-    devSourcemap: true,
+    devSourcemap: false,
     postcss: {
+      map: false,
       plugins: [
-        autoprefixer({}) // add options if needed
+        autoprefixer({})
       ]
+    },
+    preprocessorOptions: {
+      devSourcemap: false,
+      scss: {
+        api: 'modern-compiler',
+        // quietDeps: ['import', 'dart-sass'],
+        quietDeps: true,
+      },
     }
   },
   resolve: {
